@@ -60,10 +60,23 @@ def vec2frames(audio, Nw, Ns, window, padding=False):
 def normalize_frames(m,epsilon=1e-12):
 	return np.array([(v - np.mean(v)) / max(np.std(v),epsilon) for v in m])
 
-def preprocess(audio, buckets, sr=16000, Ws=25, Ss=9.9375, alpha=0.97):
+def preprocess(audio, buckets=None, sr=16000, Ws=25, Ss=9.9375, alpha=0.97):
     #ms to number of frames
+    if not buckets:
+        buckets={100: 2,
+             200: 5,
+             300: 8,
+             400: 11,
+             500: 14,
+             600: 17,
+             700: 20,
+             800: 23,
+             900: 27,
+             1000: 30}
+    
     Nw=round((Ws*sr)/1000)
     Ns=round((Ss*sr)/1000)
+    
     
     """Hardcoded for now, coz even author's code gives out 512x299 
     matrix while the paper specifies 512x300. Maybe i'm doing something wrong?"""
