@@ -56,7 +56,11 @@ def vec2frames(audio, Nw, Ns, window, padding=False):
     
     return frames * win
 
-def preprocess(audio, buckets, sr=16000, Ws=25, Ss=10, alpha=0.97):
+
+def normalize_frames(m,epsilon=1e-12):
+	return np.array([(v - np.mean(v)) / max(np.std(v),epsilon) for v in m])
+
+def preprocess(audio, buckets, sr=16000, Ws=25, Ss=9.9375, alpha=0.97):
     #ms to number of frames
     Nw=round((Ws*sr)/1000)
     Ns=round((Ss*sr)/1000)
@@ -64,7 +68,7 @@ def preprocess(audio, buckets, sr=16000, Ws=25, Ss=10, alpha=0.97):
     """Hardcoded for now, coz even author's code gives out 512x299 
     matrix while the paper specifies 512x300. Maybe i'm doing something wrong?"""
     
-    Ns=159
+    #Ns=159
     #hamming window func signature
     window=np.hamming
     #get next power of 2 greater than or equal to current Nw
@@ -81,7 +85,8 @@ def preprocess(audio, buckets, sr=16000, Ws=25, Ss=10, alpha=0.97):
     
     #get 512x300 spectrograms... zscore is just mean and variance normalization.
     mag=abs(fft(audio, nfft)) 
-    mag=zscore(mag).T
+    mag=normalize_frames(mag.T)
+    #mag=zscore(mag).T
     
     #Get the largest bucket smaller than number of column vectors i.e. frames
     rsize=max(i for i in buckets if i<=mag.shape[1])
@@ -105,6 +110,6 @@ if __name__=="__main__":
      1000: 30}
     print(audio.shape)
     # Crop and pass 3s audio for preprocessing
-    pp=preprocess(audio[:48000], buckets)
+    pp=preprocess(audio, buckets)
     print(pp.shape)
     

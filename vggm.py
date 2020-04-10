@@ -19,16 +19,16 @@ class VGGM(nn.Module):
         super(VGGM, self).__init__()
         self.n_classes=n_classes
         self.features=nn.Sequential(OrderedDict([
-            ('conv1', nn.Conv2d(in_channels=1, out_channels=96, kernel_size=(7,7), stride=(2,2))),
+            ('conv1', nn.Conv2d(in_channels=1, out_channels=96, kernel_size=(7,7), stride=(2,2), padding=1)),
             ('relu1', nn.ReLU()),
-            ('mpool1', nn.MaxPool2d(kernel_size=(3,3))),
-            ('conv2', nn.Conv2d(in_channels=96, out_channels=256, kernel_size=(5,5), stride=(2,2))),
+            ('mpool1', nn.MaxPool2d(kernel_size=(3,3), stride=(2,2))),
+            ('conv2', nn.Conv2d(in_channels=96, out_channels=256, kernel_size=(5,5), stride=(2,2), padding=1)),
             ('relu2', nn.ReLU()),
-            ('mpool2', nn.MaxPool2d(kernel_size=(3,3))),
-            ('conv3', nn.Conv2d(in_channels=256, out_channels=384, kernel_size=(3,3), stride=(1,1))),
-            ('conv4', nn.Conv2d(in_channels=384, out_channels=256, kernel_size=(3,3), stride=(1,1))),
-            ('conv5', nn.Conv2d(in_channels=256, out_channels=256, kernel_size=(3,3), stride=(1,1))),
-            ('mpool5', nn.MaxPool2d(kernel_size=(5,3))),
+            ('mpool2', nn.MaxPool2d(kernel_size=(3,3), stride=(2,2))),
+            ('conv3', nn.Conv2d(in_channels=256, out_channels=384, kernel_size=(3,3), stride=(1,1), padding=1)),
+            ('conv4', nn.Conv2d(in_channels=384, out_channels=256, kernel_size=(3,3), stride=(1,1), padding=1)),
+            ('conv5', nn.Conv2d(in_channels=256, out_channels=256, kernel_size=(3,3), stride=(1,1), padding=1)),
+            ('mpool5', nn.MaxPool2d(kernel_size=(5,3), stride=(3,2))),
             ('fc6', nn.Conv2d(in_channels=256, out_channels=4096, kernel_size=(9,1), stride=(1,1))),
             ('apool6', nn.AdaptiveAvgPool2d((1,1)))]))
             
