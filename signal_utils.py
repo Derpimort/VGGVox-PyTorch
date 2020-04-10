@@ -18,7 +18,9 @@ def rm_dc_n_dither(audio):
     alpha=0.99
     b=[1,-1]
     a=[1,-alpha]
+    
     audio=lfilter(b,a,audio)
+    
     dither=np.random.uniform(low=-1,high=1, size=audio.shape)
     spow=np.std(audio)
     return audio+(1e-6*spow)*dither
@@ -40,19 +42,22 @@ def vec2frames(audio, Nw, Ns, window, padding=False):
     if slen <= Nw:
         numframes = 1
     else:
+        #Changed to math.floor to ensure consistency between implementations
         numframes = 1 + int(math.floor((1.0 * slen - Nw) / Ns))
     
+    #Default padding check
     if(padding):
         padlen = int((numframes - 1) * Ns + Nw)
         zeros = np.zeros((padlen - slen,))
         audio = np.concatenate((audio, zeros))
+    #No need to do anything if padding=False, strides func takes care of truncation
     win = window(Nw)
     frames = rolling_window(audio, window=Nw, step=Ns)
-    """ NOTE: Author's code returned col wise.... this func returns row-wise """
+    
     return frames * win
 
 def preprocess(audio, buckets, sr=16000, Ws=25, Ss=10, alpha=0.97):
-    
+    #ms to number of frames
     Nw=round((Ws*sr)/1000)
     Ns=round((Ss*sr)/1000)
     
@@ -60,26 +65,33 @@ def preprocess(audio, buckets, sr=16000, Ws=25, Ss=10, alpha=0.97):
     matrix while the paper specifies 512x300. Maybe i'm doing something wrong?"""
     
     Ns=159
+    #hamming window func signature
     window=np.hamming
+    #get next power of 2 greater than or equal to current Nw
     nfft=1<<(Nw-1).bit_length()
     
+    # Remove DC and add small dither
     audio=rm_dc_n_dither(audio)
     
+    # Preemphasis filtering
     audio=preemphasis(audio, alpha)
     
+    #Get 400x300 frames with hamming window
     audio=vec2frames(audio, Nw, Ns, window, False)
     
-    mag=abs(fft(audio, nfft))
-    
+    #get 512x300 spectrograms... zscore is just mean and variance normalization.
+    mag=abs(fft(audio, nfft)) 
     mag=zscore(mag).T
     
+    #Get the largest bucket smaller than number of column vectors i.e. frames
     rsize=max(i for i in buckets if i<=mag.shape[1])
     rstart=(mag.shape[1]-rsize)//2
-    
+    #Return truncated spectrograms
     return mag[:,rstart:rstart+rsize]
 
 
 if __name__=="__main__":
+    # Test file same as one on the authors github for testing and maintaining consistency
     sr, audio=wavfile.read("test.wav")
     buckets={100: 2,
      200: 5,
@@ -92,6 +104,7 @@ if __name__=="__main__":
      900: 27,
      1000: 30}
     print(audio.shape)
+    # Crop and pass 3s audio for preprocessing
     pp=preprocess(audio[:48000], buckets)
     print(pp.shape)
     
