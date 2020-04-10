@@ -66,6 +66,24 @@ def accuracy(output, target, topk=(1,)):
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
 
+def test(model, Dataloader):
+    y_pred=[]
+    y_actual=[]
+    counter=0
+    for audio, labels in Dataloader:
+        audio = audio.to(device)
+        y_actual+=labels.tolist()
+        labels = labels.to(device)
+        outputs = model(audio)
+        # max returns (value ,index)
+        _, preds = torch.max(outputs, 1)
+        y_pred+=preds.tolist()
+        counter+=1
+    acc1, acc5=accuracy(y_pred, y_actual, topk=(1,5))
+    acc1/=counter
+    acc5/=counter
+    print("Val:\nTop-1 accuracy: %.5f, Top-5 accuracy: %.5f"%(acc1,acc5))
+    return acc1
 if __name__=="__main__":
     df_meta=pd.read_csv(DATA_DIR+"vox1_meta.csv",sep="\t")
     df_F=pd.read_csv(DATA_DIR+"iden_split.txt", sep=" ", names=["Set","Path"] )
@@ -113,22 +131,7 @@ if __name__=="__main__":
         #print(f'Epoch [{epoch+1}/{N_EPOCHS}] Loss= {(running_loss/counter)}')
         model.eval()
         with torch.no_grad():
-            y_pred=[]
-            y_actual=[]
-            counter=0
-            for audio, labels in Dataloaders['val']:
-                audio = audio.to(device)
-                y_actual+=labels.tolist()
-                labels = labels.to(device)
-                outputs = model(audio)
-                # max returns (value ,index)
-                _, preds = torch.max(outputs, 1)
-                y_pred+=preds.tolist()
-                counter+=1
-            acc1, acc5=accuracy(y_pred, y_actual, topk=(1,5))
-            acc1/=counter
-            acc5/=counter
-            print("Val:\nTop-1 accuracy: %.5f, Top-5 accuracy: %.5f"%(acc1,acc5))
+            acc1=test(model, Dataloaders['val'])
             if acc1<best_acc:
                 best_acc=acc1
                 torch.save(model.state_dict(), DATA_DIR+"/VGGM_%d.pth"%(epoch+1))
@@ -137,3 +140,5 @@ if __name__=="__main__":
     print('Finished Training..')
     PATH = DATA_DIR+"/VGGM_F.pth"
     torch.save(model.state_dict(), PATH)
+    model.eval()
+    acc1=test(model, Dataloaders['test'])
