@@ -114,16 +114,18 @@ if __name__=="__main__":
         model.eval()
         with torch.no_grad():
             y_pred=[]
+            y_actual=[]
             counter=0
             for audio, labels in Dataloaders['val']:
                 audio = audio.to(device)
+                y_actual+=labels.tolist()
                 labels = labels.to(device)
                 outputs = model(audio)
                 # max returns (value ,index)
                 _, preds = torch.max(outputs, 1)
                 y_pred+=preds.tolist()
                 counter+=1
-            acc1, acc5=accuracy(y_pred, Dataloaders['val'].targets, topk=(1,5))
+            acc1, acc5=accuracy(y_pred, y_actual, topk=(1,5))
             acc1/=counter
             acc5/=counter
             print("Val:\nTop-1 accuracy: %.5f, Top-5 accuracy: %.5f"%(acc1,acc5))
@@ -131,7 +133,6 @@ if __name__=="__main__":
                 best_acc=acc1
                 torch.save(model.state_dict(), DATA_DIR+"/VGGM_%d.pth"%(epoch+1))
         model.train()
-        scheduler.step()
         
     print('Finished Training..')
     PATH = DATA_DIR+"/VGGM_F.pth"
