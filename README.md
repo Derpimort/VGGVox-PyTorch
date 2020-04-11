@@ -1,7 +1,8 @@
 # VGGVox-PyTorch
 Implementing VGGVox for VoxCeleb1 dataset in PyTorch.
 
-###### Just change DATA_DIR in train and bombs away... will add cmd args and "userfriendliness" later.
+###### Specify data dir with --dir
+```python3 train.py --dir ./Data/```
 
 
 # References and Citations:

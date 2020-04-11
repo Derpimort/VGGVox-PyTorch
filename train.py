@@ -23,11 +23,12 @@ from sklearn.metrics import classification_report
 import signal_utils as sig
 from scipy.io import wavfile
 from vggm import VGGM
+import argparse
 
-DATA_DIR="../../../Projects/ML/VoxCeleb/"
+
 
 LR=0.01
-B_SIZE=1
+B_SIZE=128
 N_EPOCHS=100
 N_CLASSES=1251
 
@@ -84,11 +85,17 @@ def test(model, Dataloader):
     acc5/=counter
     print("Val:\nTop-1 accuracy: %.5f, Top-5 accuracy: %.5f"%(acc1,acc5))
     return acc1
+
 if __name__=="__main__":
+    parser=argparse.ArgumentParser(
+        description="Train and evaluate VGGVox on complete voxceleb1 for identification")
+    parser.add_argument("--dir","-d",help="Directory with wav and csv files", default="./Data/")
+    args=parser.parse_args()
+    DATA_DIR=args.dir
+    
     df_meta=pd.read_csv(DATA_DIR+"vox1_meta.csv",sep="\t")
     df_F=pd.read_csv(DATA_DIR+"iden_split.txt", sep=" ", names=["Set","Path"] )
     df_F['Label']=df_F['Path'].str.split("/", n=1, expand=True)[0].str.replace("id","")
-    print(df_F.head())
     df_F['Label']=df_F['Label'].astype(dtype=float)
     
     Datasets={
@@ -96,7 +103,7 @@ if __name__=="__main__":
         "val":AudioDataset(df_F[df_F['Set']==2]),
         "test":AudioDataset(df_F[df_F['Set']==3])}
     
-    Dataloaders={i:DataLoader(Datasets[i], batch_size=B_SIZE, shuffle=False) for i in Datasets}
+    Dataloaders={i:DataLoader(Datasets[i], batch_size=1, shuffle=False) for i in Datasets}
     
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -105,12 +112,12 @@ if __name__=="__main__":
     loss_func=nn.CrossEntropyLoss()
     optimizer=SGD(model.parameters(), lr=LR, momentum=0.9)
     best_acc=1
-    update_grad=128
+    update_grad=B_SIZE
     print("Start Training")
     for epoch in range(N_EPOCHS):
         running_loss=0.0
         loop=tqdm(Dataloaders['train'])
-        
+        loop.set_description(f'Epoch [{epoch+1}/{N_EPOCHS}]')
         for counter, (audio, labels) in enumerate(loop, start=1):
             audio=audio.unsqueeze(0)
             audio = audio.to(device)
@@ -125,9 +132,7 @@ if __name__=="__main__":
                 optimizer.step()
                 loop.set_postfix(loss=(running_loss))
                 running_loss=0
-                
-        loop.set_description(f'Epoch [{epoch+1}/{N_EPOCHS}]')
-            
+
         #print(f'Epoch [{epoch+1}/{N_EPOCHS}] Loss= {(running_loss/counter)}')
         model.eval()
         with torch.no_grad():
