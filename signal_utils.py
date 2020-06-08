@@ -8,7 +8,7 @@ Created on Thu Apr  9 20:32:02 2020
 import numpy as np
 from numpy.fft import fft
 import math
-from scipy.signal import lfilter
+from scipy.signal import lfilter, stft
 from scipy.stats import zscore
 from scipy.io import wavfile
 
@@ -30,37 +30,10 @@ def preemphasis(audio, alpha=0.97):
     a=1
     return lfilter(b, a, audio)
 
-# Following 2 functions derived from
-# https://github.com/jameslyons/python_speech_features
-def rolling_window(a, window, step=1):
-    shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
-    strides = a.strides + (a.strides[-1],)
-    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)[::step]
-
-def vec2frames(audio, Nw, Ns, window, padding=False):
-    slen = len(audio)
-    if slen <= Nw:
-        numframes = 1
-    else:
-        #Changed to math.floor to ensure consistency between implementations
-        numframes = 1 + int(math.floor((1.0 * slen - Nw) / Ns))
-    
-    #Default padding check
-    if(padding):
-        padlen = int((numframes - 1) * Ns + Nw)
-        zeros = np.zeros((padlen - slen,))
-        audio = np.concatenate((audio, zeros))
-    #No need to do anything if padding=False, strides func takes care of truncation
-    win = window(Nw)
-    frames = rolling_window(audio, window=Nw, step=Ns)
-    
-    return frames * win
-
-
 def normalize_frames(m,epsilon=1e-12):
     return (m-m.mean(1, keepdims=True))/np.clip(m.std(1, keepdims=True),epsilon, None)
 
-def preprocess(audio, buckets=None, sr=16000, Ws=25, Ss=9.9375, alpha=0.97):
+def preprocess(audio, buckets=None, sr=16000, Ws=25, Ss=10, alpha=0.97):
     #ms to number of frames
     if not buckets:
         buckets={100: 2,
@@ -78,10 +51,6 @@ def preprocess(audio, buckets=None, sr=16000, Ws=25, Ss=9.9375, alpha=0.97):
     Ns=round((Ss*sr)/1000)
     
     
-    """Hardcoded for now, coz even author's code gives out 512x299 
-    matrix while the paper specifies 512x300. Maybe i'm doing something wrong?"""
-    
-    #Ns=159
     #hamming window func signature
     window=np.hamming
     #get next power of 2 greater than or equal to current Nw
@@ -93,13 +62,19 @@ def preprocess(audio, buckets=None, sr=16000, Ws=25, Ss=9.9375, alpha=0.97):
     # Preemphasis filtering
     audio=preemphasis(audio, alpha)
     
-    #Get 400x300 frames with hamming window
-    audio=vec2frames(audio, Nw, Ns, window, False)
     
-    #get 512x300 spectrograms... zscore is just mean and variance normalization.
-    mag=abs(fft(audio, nfft)) 
-    mag=normalize_frames(mag.T)
-    #mag=zscore(mag).T
+    #get 512x300 spectrograms
+    _, _, mag=stft(audio,
+    fs=sr, 
+    window=window(Nw), 
+    nperseg=Nw, 
+    noverlap=Nw-Ns, 
+    nfft=nfft, 
+    return_onesided=False, 
+    padded=False, 
+    boundary=None)
+
+    mag=normalize_frames(np.abs(mag))
     
     #Get the largest bucket smaller than number of column vectors i.e. frames
     rsize=max(i for i in buckets if i<=mag.shape[1])
