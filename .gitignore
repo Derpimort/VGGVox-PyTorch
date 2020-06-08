@@ -1,0 +1,4 @@
+.ipynb_checkpoints/
+.spyproject/
+__pycache__/
+data/

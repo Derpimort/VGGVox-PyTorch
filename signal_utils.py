@@ -58,7 +58,7 @@ def vec2frames(audio, Nw, Ns, window, padding=False):
 
 
 def normalize_frames(m,epsilon=1e-12):
-	return np.array([(v - np.mean(v)) / max(np.std(v),epsilon) for v in m])
+    return (m-m.mean(1, keepdims=True))/np.clip(m.std(1, keepdims=True),epsilon, None)
 
 def preprocess(audio, buckets=None, sr=16000, Ws=25, Ss=9.9375, alpha=0.97):
     #ms to number of frames
