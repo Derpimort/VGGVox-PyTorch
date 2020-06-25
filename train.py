@@ -30,7 +30,7 @@ import argparse
 
 LR=0.01
 B_SIZE=100
-N_EPOCHS=30
+N_EPOCHS=200
 N_CLASSES=1251
 transformers=transforms.ToTensor()
 
@@ -73,23 +73,40 @@ def accuracy(output, target, topk=(1,)):
             res.append((correct_k.mul(100.0 / batch_size)).item())
         return res
     
-def test(model, Dataloader):
+def test(model, Dataloaders):
     corr1=0
     corr5=0
     counter=0
     top1=0
     top5=0
-    for audio, labels in Dataloader:
-        audio = audio.to(device)
-        labels = labels.to(device)
-        outputs = model(audio)
-        corr1, corr5=accuracy(outputs, labels, topk=(1,5))
-        top1+=corr1
-        top5+=corr5
+    for Dataloader in Dataloaders:
+        sub_counter=0
+        sub_top1=0
+        sub_top5=0
+        for audio, labels in Dataloader:
+            audio = audio.to(device)
+            labels = labels.to(device)
+            outputs = model(audio)
+            corr1, corr5=accuracy(outputs, labels, topk=(1,5))
+            top1+=corr1
+            top5+=corr5
         # max returns (value ,index)
-        counter+=1
-    print("Val:\nTop-1 accuracy: %.5f\nTop-5 accuracy: %.5f"%(top1/counter, top5/counter))
+            counter+=1
+            sub_top1+=corr1
+            sub_top5+=corr5
+            sub_counter+=1
+        print("Subset Val:\tTop-1 accuracy: %.5f\tTop-5 accuracy: %.5f"%(sub_top1/sub_counter, sub_top5/sub_counter))
+    print("Cumulative Val:\nTop-1 accuracy: %.5f\nTop-5 accuracy: %.5f"%(top1/counter, top5/counter))
     return top1/counter, top5/counter
+
+def ppdf(df_F):
+    df_F['Label']=df_F['Path'].str.split("/", n=1, expand=True)[0].str.replace("id","")
+    df_F['Label']=df_F['Label'].astype(dtype=float)
+    # print(df_F.head(20))
+    df_F['Path']="wav/"+df_F['Path']
+    return df_F
+    
+
 
 if __name__=="__main__":
     parser=argparse.ArgumentParser(
@@ -99,20 +116,22 @@ if __name__=="__main__":
     DATA_DIR=args.dir 
     df_meta=pd.read_csv(DATA_DIR+"vox1_meta.csv",sep="\t")
     df_F=pd.read_csv(DATA_DIR+"iden_split.txt", sep=" ", names=["Set","Path"] )
-    df_F['Label']=df_F['Path'].str.split("/", n=1, expand=True)[0].str.replace("id","")
-    df_F['Label']=df_F['Label'].astype(dtype=float)
-    # print(df_F.head(20))
-    df_F['Path']="wav/"+df_F['Path']
+    val_F=pd.read_pickle(DATA_DIR+"val.pkl")
+    df_F=ppdf(df_F)
+    val_F=ppdf(val_F)
     
     Datasets={
         "train":AudioDataset(df_F[df_F['Set']==1]),
-        "val":AudioDataset(df_F[df_F['Set']==2], is_train=False),
+        "val":[AudioDataset(val_F[val_F['lengths']==i], is_train=False) for i in range(300,1100,100)],
         "test":AudioDataset(df_F[df_F['Set']==3], is_train=False)}
     batch_sizes={
             "train":B_SIZE,
             "val":1,
             "test":1}
-    Dataloaders={i:DataLoader(Datasets[i], batch_size=batch_sizes[i], shuffle=True, num_workers=8) for i in Datasets}
+    Dataloaders={}
+    Dataloaders['train']=DataLoader(Datasets['train'], batch_size=batch_sizes['train'], shuffle=True, num_workers=8)
+    Dataloaders['val']=[DataLoader(i, batch_size=batch_sizes['train'], shuffle=False) for i in Datasets['val']]
+    Dataloaders['test']=[DataLoader(Datasets['test'], batch_size=batch_sizes['test'], shuffle=False)]
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -120,14 +139,14 @@ if __name__=="__main__":
     model=VGGM(1251)
     model.to(device)
     loss_func=nn.CrossEntropyLoss()
-    optimizer=SGD(model.parameters(), lr=0.01)
+    optimizer=SGD(model.parameters(), lr=0.01, momentum=0.6, weight_decay=5e-4)
     #scheduler=lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda epoch: LR[epoch])
+    scheduler=lr_scheduler.MultiStepLR(optimizer, milestones=[30,100,150], gamma=0.1)
     best_acc=1
     update_grad=1
     print("Start Training")
     for epoch in range(N_EPOCHS):
         model.train()
-        #scheduler.step()
         running_loss=0.0
         corr1=0
         corr5=0
@@ -167,11 +186,12 @@ if __name__=="__main__":
             if acc1>best_acc:
                 best_acc=acc1
                 best_model=model.state_dict()
+        scheduler.step()
 
-    torch.save(best_model, DATA_DIR+"/VGGM_BEST_%.2f.pth"%(acc1))
+    torch.save(best_model, DATA_DIR+"/VGGMVAL_BEST_%.2f.pth"%(acc1))
         
     print('Finished Training..')
-    PATH = DATA_DIR+"/VGGM_F.pth"
+    PATH = DATA_DIR+"/VGGMVAL_F.pth"
     torch.save(model.state_dict(), PATH)
     model.eval()
     acc1=test(model, Dataloaders['test'])
