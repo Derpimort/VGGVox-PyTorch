@@ -1,37 +1,37 @@
 Validation set:
-Subset Val(512x300) :     Top-1 accuracy: 68.40805        Top-5 accuracy: 83.08046
-Subset Val(512x400) :     Top-1 accuracy: 68.85305        Top-5 accuracy: 86.44982
-Subset Val(512x500) :     Top-1 accuracy: 71.32967        Top-5 accuracy: 88.07692
-Subset Val(512x600) :     Top-1 accuracy: 77.16667        Top-5 accuracy: 91.38889
-Subset Val(512x700) :     Top-1 accuracy: 79.02041        Top-5 accuracy: 93.42857
-Subset Val(512x800) :     Top-1 accuracy: 80.76438        Top-5 accuracy: 94.23014
-Subset Val(512x900) :     Top-1 accuracy: 86.41379        Top-5 accuracy: 94.77586
-Subset Val(512x1000):     Top-1 accuracy: 85.24060        Top-5 accuracy: 94.42105
+
+Subset Val(512x300) :     Top-1 accuracy: 72.33333        Top-5 accuracy: 84.80460
+Subset Val(512x400) :     Top-1 accuracy: 71.41756        Top-5 accuracy: 88.28315
+Subset Val(512x500) :     Top-1 accuracy: 72.79121        Top-5 accuracy: 89.52747
+Subset Val(512x600) :     Top-1 accuracy: 79.57778        Top-5 accuracy: 93.40000
+Subset Val(512x700) :     Top-1 accuracy: 79.48980        Top-5 accuracy: 95.02041
+Subset Val(512x800) :     Top-1 accuracy: 82.38630        Top-5 accuracy: 93.70411
+Subset Val(512x900) :     Top-1 accuracy: 87.66379        Top-5 accuracy: 96.02586
+Subset Val(512x1000):     Top-1 accuracy: 86.09774        Top-5 accuracy: 95.62782
 
 Cumulative Val:
-Top-1 accuracy: 76.31660
-Top-5 accuracy: 90.51090
+Top-1 accuracy: 78.03603
+Top-5 accuracy: 91.96054
 
 Finished Training..
 
 
 Test set:
-Top-1 accuracy: 75.42116
-Top-5 accuracy: 90.37692
+Top-1 accuracy: 78.98270
+Top-5 accuracy: 91.91984
 
 Model Params:
 Same layers as in the paper. Output 1251 dimension. BN momentum=0.5
 Optimizer:  SGD
-momentum:   0.6
+momentum:   0.9
 wt_decay:   5e-4
-Epochs:     200
+Epochs:     150
 
 LR: 
-0.01 (till 30)
-0.001(till 100)
-0.0001(till 200)
+Start = 0.01
+Divide by 1.17 every 5 epochs
 
 Model weights:
-VGGMVAL_BEST_76.32.pth
-VGGMVAL_F.pth
+VGGMVAL_BEST_78.03.pth
+VGGM_F.pth
 

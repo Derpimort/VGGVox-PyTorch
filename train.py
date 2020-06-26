@@ -30,7 +30,7 @@ import argparse
 
 LR=0.01
 B_SIZE=100
-N_EPOCHS=200
+N_EPOCHS=150
 N_CLASSES=1251
 transformers=transforms.ToTensor()
 
@@ -130,7 +130,7 @@ if __name__=="__main__":
             "test":1}
     Dataloaders={}
     Dataloaders['train']=DataLoader(Datasets['train'], batch_size=batch_sizes['train'], shuffle=True, num_workers=8)
-    Dataloaders['val']=[DataLoader(i, batch_size=batch_sizes['train'], shuffle=False) for i in Datasets['val']]
+    Dataloaders['val']=[DataLoader(i, batch_size=batch_sizes['train'], shuffle=False, num_workers=2) for i in Datasets['val']]
     Dataloaders['test']=[DataLoader(Datasets['test'], batch_size=batch_sizes['test'], shuffle=False)]
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -139,11 +139,12 @@ if __name__=="__main__":
     model=VGGM(1251)
     model.to(device)
     loss_func=nn.CrossEntropyLoss()
-    optimizer=SGD(model.parameters(), lr=0.01, momentum=0.6, weight_decay=5e-4)
+    optimizer=SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
     #scheduler=lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda epoch: LR[epoch])
-    scheduler=lr_scheduler.MultiStepLR(optimizer, milestones=[30,100,150], gamma=0.1)
+    scheduler=lr_scheduler.StepLR(optimizer, step_size=5, gamma=1/1.17)
     best_acc=1
     update_grad=1
+    best_epoch=0
     print("Start Training")
     for epoch in range(N_EPOCHS):
         model.train()
@@ -186,12 +187,12 @@ if __name__=="__main__":
             if acc1>best_acc:
                 best_acc=acc1
                 best_model=model.state_dict()
+                best_epoch=epoch
+                torch.save(best_model, DATA_DIR+"/VGGMVAL_BEST_%d_%.2f.pth"%(best_epoch, best_acc))
         scheduler.step()
 
-    torch.save(best_model, DATA_DIR+"/VGGMVAL_BEST_%.2f.pth"%(acc1))
-        
     print('Finished Training..')
-    PATH = DATA_DIR+"/VGGMVAL_F.pth"
+    PATH = DATA_DIR+"/VGGM_F.pth"
     torch.save(model.state_dict(), PATH)
     model.eval()
     acc1=test(model, Dataloaders['test'])

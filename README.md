@@ -5,8 +5,8 @@ Implementing VGGVox for VoxCeleb1 dataset in PyTorch.
 ```python3 train.py --dir ./Data/```
 
 ## Notes
-- Couldn't replicate the results, only got 75% top-1, 90% top-5 at best on the variable input network. 
-- Still off by 5% atleast. 
+- Couldn't replicate the results, only got 78% top-1, 91.9% top-5 at best on the variable input network. 
+- Still off by 2% atleast. 
 - Training on the V100 takes 4 mins per epoch.
 
 #### What i've done so far:
