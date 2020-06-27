@@ -43,10 +43,10 @@ class AudioDataset(Dataset):
         self.y=(csv_file['Label'].values-10001).astype(int)
         self.is_train=is_train
         self.croplen=croplen
-        
+
     def __len__(self):
         return len(self.y)
-    
+
     def __getitem__(self, idx):
         label=self.y[idx]
         sr, audio=wavfile.read(os.path.join(DATA_DIR,self.X[idx]))
@@ -72,7 +72,7 @@ def accuracy(output, target, topk=(1,)):
             correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
             res.append((correct_k.mul(100.0 / batch_size)).item())
         return res
-    
+
 def test(model, Dataloaders):
     corr1=0
     corr5=0
@@ -88,10 +88,11 @@ def test(model, Dataloaders):
             labels = labels.to(device)
             outputs = model(audio)
             corr1, corr5=accuracy(outputs, labels, topk=(1,5))
+            #Cumulative values
             top1+=corr1
             top5+=corr5
-        # max returns (value ,index)
             counter+=1
+            #Subset Values
             sub_top1+=corr1
             sub_top5+=corr5
             sub_counter+=1
@@ -105,7 +106,7 @@ def ppdf(df_F):
     # print(df_F.head(20))
     df_F['Path']="wav/"+df_F['Path']
     return df_F
-    
+
 
 
 if __name__=="__main__":
@@ -113,13 +114,13 @@ if __name__=="__main__":
         description="Train and evaluate VGGVox on complete voxceleb1 for identification")
     parser.add_argument("--dir","-d",help="Directory with wav and csv files", default="./Data/")
     args=parser.parse_args()
-    DATA_DIR=args.dir 
+    DATA_DIR=args.dir
     df_meta=pd.read_csv(DATA_DIR+"vox1_meta.csv",sep="\t")
     df_F=pd.read_csv(DATA_DIR+"iden_split.txt", sep=" ", names=["Set","Path"] )
     val_F=pd.read_pickle(DATA_DIR+"val.pkl")
     df_F=ppdf(df_F)
     val_F=ppdf(val_F)
-    
+
     Datasets={
         "train":AudioDataset(df_F[df_F['Set']==1]),
         "val":[AudioDataset(val_F[val_F['lengths']==i], is_train=False) for i in range(300,1100,100)],
@@ -129,20 +130,20 @@ if __name__=="__main__":
             "val":1,
             "test":1}
     Dataloaders={}
-    Dataloaders['train']=DataLoader(Datasets['train'], batch_size=batch_sizes['train'], shuffle=True, num_workers=8)
+    Dataloaders['train']=DataLoader(Datasets['train'], batch_size=batch_sizes['train'], shuffle=True, num_workers=4)
     Dataloaders['val']=[DataLoader(i, batch_size=batch_sizes['train'], shuffle=False, num_workers=2) for i in Datasets['val']]
     Dataloaders['test']=[DataLoader(Datasets['test'], batch_size=batch_sizes['test'], shuffle=False)]
-    
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
-    
+
     model=VGGM(1251)
     model.to(device)
     loss_func=nn.CrossEntropyLoss()
-    optimizer=SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=5e-4)
-    #scheduler=lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda epoch: LR[epoch])
+    optimizer=SGD(model.parameters(), lr=0.01, momentum=0.99, weight_decay=5e-4)
     scheduler=lr_scheduler.StepLR(optimizer, step_size=5, gamma=1/1.17)
-    best_acc=1
+    #Save models after accuracy crosses 75
+    best_acc=75
     update_grad=1
     best_epoch=0
     print("Start Training")
@@ -160,8 +161,6 @@ if __name__=="__main__":
             optimizer.zero_grad()
             audio = audio.to(device)
             labels = labels.to(device)
-            #print(labels.shape, audio.shape)
-            #print(labels, audio[0])
             if counter==32:
                 random_subset=audio
             outputs = model(audio)
@@ -171,15 +170,10 @@ if __name__=="__main__":
             top1+=corr1
             top5+=corr5
             if(counter%update_grad==0):
-                #av_loss=running_loss/update_grad
                 loss.backward()
                 optimizer.step()
                 loop.set_postfix(loss=(running_loss.item()/(counter)), top1_acc=top1/(counter), top5_acc=top5/counter)
-                #running_loss=0
 
-        #print(f'Epoch [{epoch+1}/{N_EPOCHS}] Loss= {(running_loss/counter)}')
-        #scheduler.step()
-        #print(audio.shape)
         model(random_subset)
         model.eval()
         with torch.no_grad():
@@ -191,9 +185,9 @@ if __name__=="__main__":
                 torch.save(best_model, DATA_DIR+"/VGGMVAL_BEST_%d_%.2f.pth"%(best_epoch, best_acc))
         scheduler.step()
 
+
     print('Finished Training..')
     PATH = DATA_DIR+"/VGGM_F.pth"
     torch.save(model.state_dict(), PATH)
     model.eval()
     acc1=test(model, Dataloaders['test'])
-

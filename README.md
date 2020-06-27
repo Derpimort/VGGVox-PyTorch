@@ -5,8 +5,7 @@ Implementing VGGVox for VoxCeleb1 dataset in PyTorch.
 ```python3 train.py --dir ./Data/```
 
 ## Notes
-- Couldn't replicate the results, only got 78% top-1, 91.9% top-5 at best on the variable input network. 
-- Still off by 2% atleast. 
+- 80.40% Top-1 & 93.01 Top-5 Test-set accuracy, pretty satisfactory. Find details in [results.txt](results.txt).
 - Training on the V100 takes 4 mins per epoch.
 
 #### What i've done so far:
@@ -15,8 +14,8 @@ Implementing VGGVox for VoxCeleb1 dataset in PyTorch.
  - [x] **Copy all hyperparameter**... LR, optimizer params, batch size from the author's net.
  - [x] **Stabilize PyTorch's BatchNorm and test variants.** Improved results by a small percentage.
  - [x] **Try onesided spectrogram input as mentioned on the author's github.**
- - [ ] **Port the authors network from matlab and train.** The matlab model has 1300 outputs dimension, will test it later.
- - [ ] **Copy weights from the matlab network and test.**
+ - [ ] ~~**Port the authors network from matlab and train.** The matlab model has 1300 outputs dimension, will test it later.~~
+ - [ ] ~~**Copy weights from the matlab network and test.**~~
 
 # References and Citations:
 
