@@ -1,12 +1,22 @@
 # VGGVox-PyTorch
 Implementing VGGVox for VoxCeleb1 dataset in PyTorch.
 
+## Train
+
+```
+pip install -r requirements.txt
+python3 train.py --dir ./Data/
+```
+
 ###### Specify data dir with --dir
-```python3 train.py --dir ./Data/```
 
 ## Notes
-- 80.40% Top-1 & 93.01 Top-5 Test-set accuracy, pretty satisfactory. Find details in [results.txt](results.txt).
+- 81.79% Top-1 & 93.17 Top-5 Test-set accuracy, pretty satisfactory. Find details in [results.txt](results.txt).
 - Training on the V100 takes 4 mins per epoch.
+
+## Model
+- Run `python3 vggm.py` for model architecture.
+- Best model weights uploaded [VGGM300_BEST_140_81.99.pth](models/VGGM300_BEST_140_81.99.pth)
 
 #### What i've done so far:
  - [x] **All the data preprocessed exactly as author's matlab code.** Checked and verified online on matlab

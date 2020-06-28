@@ -20,7 +20,6 @@ from torchvision import transforms
 import matplotlib.pyplot as plt
 import time
 from tqdm.auto import tqdm
-from sklearn.metrics import classification_report
 import signal_utils as sig
 from scipy.io import wavfile
 from vggm import VGGM
@@ -33,6 +32,8 @@ B_SIZE=100
 N_EPOCHS=150
 N_CLASSES=1251
 transformers=transforms.ToTensor()
+LOCAL_DATA_DIR="data/"
+MODEL_DIR="models/"
 
 class AudioDataset(Dataset):
     def __init__(self, csv_file, croplen=48320, is_train=True):
@@ -115,9 +116,9 @@ if __name__=="__main__":
     parser.add_argument("--dir","-d",help="Directory with wav and csv files", default="./Data/")
     args=parser.parse_args()
     DATA_DIR=args.dir
-    df_meta=pd.read_csv(DATA_DIR+"vox1_meta.csv",sep="\t")
-    df_F=pd.read_csv(DATA_DIR+"iden_split.txt", sep=" ", names=["Set","Path"] )
-    val_F=pd.read_pickle(DATA_DIR+"val.pkl")
+    df_meta=pd.read_csv(LOCAL_DATA_DIR+"vox1_meta.csv",sep="\t")
+    df_F=pd.read_csv(LOCAL_DATA_DIR+"iden_split.txt", sep=" ", names=["Set","Path"] )
+    val_F=pd.read_pickle(LOCAL_DATA_DIR+"val.pkl")
     df_F=ppdf(df_F)
     val_F=ppdf(val_F)
 
@@ -182,12 +183,12 @@ if __name__=="__main__":
                 best_acc=acc1
                 best_model=model.state_dict()
                 best_epoch=epoch
-                torch.save(best_model, DATA_DIR+"/VGGMVAL_BEST_%d_%.2f.pth"%(best_epoch, best_acc))
+                torch.save(best_model, os.path.join(MODEL_DIR,"VGGMVAL_BEST_%d_%.2f.pth"%(best_epoch, best_acc)))
         scheduler.step()
 
 
     print('Finished Training..')
-    PATH = DATA_DIR+"/VGGM_F.pth"
+    PATH = os.path.join(MODEL_DIR,"VGGM_F.pth")
     torch.save(model.state_dict(), PATH)
     model.eval()
     acc1=test(model, Dataloaders['test'])

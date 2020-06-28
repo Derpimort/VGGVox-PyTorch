@@ -2,3 +2,4 @@
 .spyproject/
 __pycache__/
 data/
+models/
