@@ -36,12 +36,13 @@ LOCAL_DATA_DIR="data/"
 MODEL_DIR="models/"
 
 class AudioDataset(Dataset):
-    def __init__(self, csv_file, croplen=48320, is_train=True):
+    def __init__(self, csv_file, data_dir, croplen=48320, is_train=True):
         if isinstance(csv_file, str):
             csv_file=pd.read_csv(csv_file)
         assert isinstance(csv_file, pd.DataFrame), "Invalid csv path or dataframe"
         self.X=csv_file['Path'].values
         self.y=(csv_file['Label'].values-10001).astype(int)
+        self.data_dir=data_dir
         self.is_train=is_train
         self.croplen=croplen
 
@@ -50,7 +51,7 @@ class AudioDataset(Dataset):
 
     def __getitem__(self, idx):
         label=self.y[idx]
-        sr, audio=wavfile.read(os.path.join(DATA_DIR,self.X[idx]))
+        sr, audio=wavfile.read(os.path.join(self.data_dir,self.X[idx]))
         if(self.is_train):
             start=np.random.randint(0,audio.shape[0]-self.croplen+1)
             audio=audio[start:start+self.croplen]
@@ -123,9 +124,9 @@ if __name__=="__main__":
     val_F=ppdf(val_F)
 
     Datasets={
-        "train":AudioDataset(df_F[df_F['Set']==1]),
-        "val":[AudioDataset(val_F[val_F['lengths']==i], is_train=False) for i in range(300,1100,100)],
-        "test":AudioDataset(df_F[df_F['Set']==3], is_train=False)}
+        "train":AudioDataset(df_F[df_F['Set']==1], DATA_DIR),
+        "val":[AudioDataset(val_F[val_F['lengths']==i], DATA_DIR, is_train=False) for i in range(300,1100,100)],
+        "test":AudioDataset(df_F[df_F['Set']==3], DATA_DIR, is_train=False)}
     batch_sizes={
             "train":B_SIZE,
             "val":1,
