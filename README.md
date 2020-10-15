@@ -5,7 +5,7 @@ Implementing VGGVox for VoxCeleb1 dataset in PyTorch.
 
 ```
 pip install -r requirements.txt
-python3 train.py --dir ./Data/
+python3 train.py --dir ./data/
 ```
 
 ###### Specify data dir with --dir
